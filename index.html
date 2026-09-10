@@ -263,28 +263,26 @@
 </div>
 
 <script>
-// Data contoh untuk simulasi pencarian bisnis.
-// Pada versi produksi, ganti fungsi searchBusiness() di bawah dengan
-// pemanggilan Google Places Autocomplete API (butuh API key milik Anda),
-// lalu Place Details API untuk mengambil place_id yang valid.
-const SAMPLE_BUSINESSES = [
-  { name: "Kedai Kopi Sejahtera Abadi", address: "Jl. Jend. Sudirman, Tidar Sel., Kota Magelang, Jawa Tengah", placeId: "ChIJd8BlQ2BZ5kcRR1J2LnA8bcM" },
-  { name: "Kopi Kenangan Senayan", address: "Jl. Asia Afrika, Gelora, Jakarta Pusat", placeId: "ChIJoc0Y3z_qaS4RxK4M9fA1btQ" },
-  { name: "Warung Nasi Padang Sederhana", address: "Jl. Merdeka No. 12, Bandung, Jawa Barat", placeId: "ChIJz9L6Q8ZFai4RrHnE7Bp0KsE" },
-  { name: "Salon Cantika Modern", address: "Jl. Diponegoro No. 45, Semarang, Jawa Tengah", placeId: "ChIJXv2M4t2vaS4RM8kL3nT9psA" },
-  { name: "Bengkel Motor Jaya Abadi", address: "Jl. Raya Cibinong No. 8, Bogor, Jawa Barat", placeId: "ChIJq5V3F0lFaS4RwYp8k2LhBcQ" },
-  { name: "Laundry Bersih Wangi", address: "Jl. Kaliurang KM 5, Sleman, Yogyakarta", placeId: "ChIJm2XQz7VYaS4RfT9j1PqE0dY" },
-  { name: "Apotek Sehat Bersama", address: "Jl. Gatot Subroto No. 21, Surabaya, Jawa Timur", placeId: "ChIJf8L1nQpUaS4RkD6h4XwT2eA" },
-  { name: "Kopi Kenangan Bekasi", address: "Jl. Ahmad Yani No. 3, Bekasi, Jawa Barat", placeId: "ChIJn4T6yQtUaS4RlV2c8YfR1sM" },
-  { name: "Kedai Bakso Pak Man", address: "Jl. Veteran No. 9, Malang, Jawa Timur", placeId: "ChIJp3K8wRlUaS4RmX5b6ZqW3tN" },
-  { name: "Cafe Kopi Senja", address: "Jl. Braga No. 17, Bandung, Jawa Barat", placeId: "ChIJt6M9zTlUaS4RnY7d5WrQ4uP" }
-];
+// ============================================================
+// GANTI URL INI dengan URL Web App Apps Script kamu setelah deploy
+// (Deploy > New deployment > Web app > Execute as: Me, Access: Anyone)
+// ============================================================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1w5-WLfH3pbkFBhv6JI-T7GNL6-Mp2yV5glQHtBqMKJ3FdZ_HHJlLTNVaqCEiYS5wvg/exec';
 
-function searchBusiness(query) {
-  const q = query.toLowerCase();
-  return SAMPLE_BUSINESSES
-    .filter(b => b.name.toLowerCase().includes(q))
-    .slice(0, 5);
+// Cari bisnis lewat backend Apps Script (yang manggil Google Places API)
+async function searchBusiness(query) {
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=search&q=' + encodeURIComponent(query));
+    const data = await res.json();
+    if (data.error) {
+      console.error(data.error);
+      return [];
+    }
+    return data; // [{name, address, placeId}, ...]
+  } catch (err) {
+    console.error('Gagal mencari bisnis:', err);
+    return [];
+  }
 }
 
 const bizInput = document.getElementById('bizInput');
@@ -303,6 +301,11 @@ let searchTimer = null;
 
 function reviewLink(placeId) {
   return 'https://search.google.com/local/writereview?placeid=' + placeId;
+}
+
+function showLoadingDropdown() {
+  dropdown.innerHTML = '<div class="dd-empty">Mencari...</div>';
+  dropdown.classList.add('open');
 }
 
 function showDropdown(results, query) {
@@ -343,14 +346,18 @@ bizInput.addEventListener('input', () => {
   const q = bizInput.value.trim();
   clearTimeout(searchTimer);
   if (!q) { hideDropdown(); return; }
-  searchTimer = setTimeout(() => {
-    showDropdown(searchBusiness(q), q);
-  }, 250);
+  showLoadingDropdown();
+  searchTimer = setTimeout(async () => {
+    const results = await searchBusiness(q);
+    showDropdown(results, q);
+  }, 400);
 });
 
-bizInput.addEventListener('focus', () => {
-  if (!selectedPlace && bizInput.value.trim()) {
-    showDropdown(searchBusiness(bizInput.value.trim()), bizInput.value.trim());
+bizInput.addEventListener('focus', async () => {
+  const q = bizInput.value.trim();
+  if (!selectedPlace && q) {
+    showLoadingDropdown();
+    showDropdown(await searchBusiness(q), q);
   }
 });
 
@@ -369,7 +376,9 @@ function updateActivateState() {
   if (ready) errorMsg.style.display = 'none';
 }
 
-activateBtn.addEventListener('click', () => {
+const CARD_CODE = 'DEMO1234'; // nanti diisi dinamis dari URL kartu, misal ?kode=XXXX
+
+activateBtn.addEventListener('click', async () => {
   if (!selectedPlace) {
     errorMsg.textContent = 'Cari dan pilih nama bisnis terlebih dahulu.';
     errorMsg.style.display = 'block';
@@ -380,12 +389,43 @@ activateBtn.addEventListener('click', () => {
     errorMsg.style.display = 'block';
     return;
   }
-  const link = reviewLink(selectedPlace.placeId);
-  finalLink.textContent = link;
-  finalLink.title = link;
-  successDesc.textContent = 'Kartu DEMO1234 sudah terhubung ke "' + selectedPlace.name + '". Tempelkan atau tunjukkan kartu ke pelanggan agar mereka langsung diarahkan ke halaman ulasan.';
-  formView.style.display = 'none';
-  successView.style.display = 'block';
+
+  activateBtn.disabled = true;
+  activateBtn.textContent = 'Menyimpan...';
+
+  try {
+    // Kirim data yang SUDAH tersimpan dari langkah pencarian (nama, alamat, placeId)
+    // bareng PIN, dalam satu kali kirim — tidak perlu ketik ulang nama bisnis.
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // hindari CORS preflight
+      body: JSON.stringify({
+        action: 'activate',
+        cardCode: CARD_CODE,
+        name: selectedPlace.name,
+        address: selectedPlace.address,
+        placeId: selectedPlace.placeId,
+        pin: pinInput.value
+      })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Gagal menyimpan aktivasi.');
+    }
+
+    finalLink.textContent = data.link;
+    finalLink.title = data.link;
+    successDesc.textContent = 'Kartu ' + CARD_CODE + ' sudah terhubung ke "' + selectedPlace.name + '". Tempelkan atau tunjukkan kartu ke pelanggan agar mereka langsung diarahkan ke halaman ulasan.';
+    formView.style.display = 'none';
+    successView.style.display = 'block';
+  } catch (err) {
+    errorMsg.textContent = 'Gagal mengaktifkan kartu: ' + err.message;
+    errorMsg.style.display = 'block';
+  } finally {
+    activateBtn.disabled = false;
+    activateBtn.textContent = 'Aktifkan Kartu';
+  }
 });
 
 document.getElementById('copyBtn').addEventListener('click', () => {
