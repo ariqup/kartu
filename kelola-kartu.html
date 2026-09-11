@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelola Kartu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page-bg:#EEF1F5;
+    --card-bg:#FFFFFF;
+    --text-primary:#101828;
+    --text-secondary:#667085;
+    --border:#E4E7EC;
+    --border-focus:#2F6FED;
+    --accent:#2F6FED;
+    --accent-hover:#2559C7;
+    --danger:#D92D20;
+    --danger-bg:#FEF3F2;
+    --success:#16A34A;
+    --success-bg:#F0FBF4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--page-bg);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--text-primary);
+    padding:32px 16px;
+  }
+  .card{
+    width:100%;
+    max-width:420px;
+    background:var(--card-bg);
+    border-radius:28px;
+    box-shadow:0 20px 40px -16px rgba(16,24,40,0.18), 0 2px 6px rgba(16,24,40,0.06);
+    padding:32px 28px 28px;
+  }
+  h1{font-size:22px; font-weight:700; margin:0 0 10px; letter-spacing:-0.01em;}
+  .desc{font-size:14px; line-height:1.55; color:var(--text-secondary); margin:0 0 24px;}
+  label{display:block; font-size:14px; font-weight:600; margin-bottom:8px;}
+  .field{margin-bottom:20px;}
+  input{
+    width:100%; height:48px; border:1.5px solid var(--border); border-radius:14px;
+    padding:0 16px; font-size:14px; font-family:inherit; outline:none;
+  }
+  input:focus{border-color:var(--border-focus); box-shadow:0 0 0 4px rgba(47,111,237,0.12);}
+  #pinInput{letter-spacing:10px; font-size:20px; font-weight:600;}
+  .error-msg{font-size:13px; color:var(--danger); background:var(--danger-bg); border-radius:10px; padding:10px 12px; margin-top:6px; display:none;}
+  .success-msg{font-size:13px; color:var(--success); background:var(--success-bg); border-radius:10px; padding:10px 12px; margin-top:6px; display:none;}
+  button{
+    width:100%; height:52px; border:none; border-radius:14px; background:var(--danger); color:#fff;
+    font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; margin-top:8px;
+  }
+  button:hover:not(:disabled){opacity:0.92;}
+  button:disabled{background:#F2A6A0; cursor:not-allowed;}
+  .status-box{font-size:13px; color:var(--text-secondary); background:#F9FAFB; border-radius:10px; padding:12px; margin-bottom:20px; display:none;}
+  .status-box b{color:var(--text-primary);}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Kelola Kartu</h1>
+  <p class="desc">Masukkan kode kartu dan PIN yang dibuat saat aktivasi untuk menonaktifkan kartu ini. Setelah direset, kartu bisa diaktifkan ulang dengan bisnis baru lewat halaman aktivasi.</p>
+
+  <div class="field">
+    <label for="cardCodeInput">Kode Kartu</label>
+    <input type="text" id="cardCodeInput" placeholder="Contoh: AB3XK9Q2" autocomplete="off">
+  </div>
+
+  <div class="status-box" id="statusBox"></div>
+
+  <div class="field">
+    <label for="pinInput">PIN (4 Digit Angka)</label>
+    <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••">
+  </div>
+
+  <p class="error-msg" id="errorMsg"></p>
+  <p class="success-msg" id="successMsg"></p>
+
+  <button id="resetBtn">Nonaktifkan Kartu Ini</button>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1w5-WLfH3pbkFBhv6JI-T7GNL6-Mp2yV5glQHtBqMKJ3FdZ_HHJlLTNVaqCEiYS5wvg/exec';
+
+const cardCodeInput = document.getElementById('cardCodeInput');
+const pinInput = document.getElementById('pinInput');
+const statusBox = document.getElementById('statusBox');
+const errorMsg = document.getElementById('errorMsg');
+const successMsg = document.getElementById('successMsg');
+const resetBtn = document.getElementById('resetBtn');
+
+// Kalau dibuka lewat link ?kode=XXXX, isi otomatis kolom kode kartu
+const urlParams = new URLSearchParams(window.location.search);
+const prefillCode = urlParams.get('kode');
+if (prefillCode) cardCodeInput.value = prefillCode;
+
+pinInput.addEventListener('input', () => {
+  pinInput.value = pinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+});
+
+resetBtn.addEventListener('click', async () => {
+  errorMsg.style.display = 'none';
+  successMsg.style.display = 'none';
+
+  const cardCode = cardCodeInput.value.trim();
+  const pin = pinInput.value.trim();
+
+  if (!cardCode) {
+    errorMsg.textContent = 'Isi kode kartu terlebih dahulu.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  if (pin.length !== 4) {
+    errorMsg.textContent = 'PIN harus 4 digit angka.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  resetBtn.disabled = true;
+  resetBtn.textContent = 'Memproses...';
+
+  try {
+    const params = new URLSearchParams({ action: 'reset', cardCode, pin });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Gagal menonaktifkan kartu.');
+    }
+
+    successMsg.textContent = 'Kartu ' + cardCode + ' berhasil dinonaktifkan. Kartu ini sekarang bisa diaktifkan ulang lewat halaman aktivasi.';
+    successMsg.style.display = 'block';
+    pinInput.value = '';
+  } catch (err) {
+    errorMsg.textContent = err.message;
+    errorMsg.style.display = 'block';
+  } finally {
+    resetBtn.disabled = false;
+    resetBtn.textContent = 'Nonaktifkan Kartu Ini';
+  }
+});
+</script>
+
+</body>
+</html>
