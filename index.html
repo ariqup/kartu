@@ -226,11 +226,15 @@
 </head>
 <body>
 
-<div class="card">
+<div class="card" id="cardEl">
 
-  <div id="formView">
+  <div id="loadingView">
+    <p class="desc" style="margin:0;">Memeriksa status kartu...</p>
+  </div>
+
+  <div id="formView" style="display:none;">
     <h1>Aktivasi Kartu</h1>
-    <p class="desc">Kode kartu: <b>DEMO1234</b>. Isi semua kolom di bawah untuk mengaktifkan kartu.</p>
+    <p class="desc">Kode kartu: <b id="cardCodeText">DEMO1234</b>. Isi semua kolom di bawah untuk mengaktifkan kartu.</p>
 
     <div class="field">
       <label for="bizInput">Nama Bisnis</label>
@@ -376,7 +380,36 @@ function updateActivateState() {
   if (ready) errorMsg.style.display = 'none';
 }
 
-const CARD_CODE = 'DEMO1234'; // nanti diisi dinamis dari URL kartu, misal ?kode=XXXX
+// Kode kartu diambil dari URL barcode, misal: ariqup.github.io/kartu/?kode=ABCD1234
+// Kalau tidak ada parameter kode, pakai DEMO1234 sebagai fallback untuk testing.
+const urlParams = new URLSearchParams(window.location.search);
+const CARD_CODE = urlParams.get('kode') || 'DEMO1234';
+document.getElementById('cardCodeText').textContent = CARD_CODE;
+
+const loadingView = document.getElementById('loadingView');
+
+// Cek dulu ke backend: kartu ini sudah pernah diaktifkan atau belum.
+// Kalau sudah aktif, langsung lempar ke halaman Google Review-nya
+// (barcode yang sama otomatis "berubah fungsi" jadi link review).
+// Kalau belum, baru tampilkan form aktivasi.
+(async function checkCardOnLoad() {
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=checkStatus&cardCode=' + encodeURIComponent(CARD_CODE));
+    const data = await res.json();
+
+    if (data.activated && data.link) {
+      loadingView.innerHTML = '<p class="desc" style="margin:0;">Mengarahkan ke halaman ulasan...</p>';
+      window.location.href = data.link;
+      return;
+    }
+  } catch (err) {
+    console.error('Gagal cek status kartu:', err);
+    // Kalau gagal cek (misal koneksi bermasalah), tetap tampilkan form aktivasi sebagai fallback.
+  }
+
+  loadingView.style.display = 'none';
+  formView.style.display = 'block';
+})();
 
 activateBtn.addEventListener('click', async () => {
   if (!selectedPlace) {
@@ -413,9 +446,14 @@ activateBtn.addEventListener('click', async () => {
 
     finalLink.textContent = data.link;
     finalLink.title = data.link;
-    successDesc.textContent = 'Kartu ' + CARD_CODE + ' sudah terhubung ke "' + selectedPlace.name + '". Tempelkan atau tunjukkan kartu ke pelanggan agar mereka langsung diarahkan ke halaman ulasan.';
+    successDesc.textContent = 'Kartu ' + CARD_CODE + ' sudah terhubung ke "' + selectedPlace.name + '". Mengarahkan ke halaman ulasan...';
     formView.style.display = 'none';
     successView.style.display = 'block';
+
+    // Otomatis arahkan ke halaman Google Review setelah 1.5 detik
+    setTimeout(function () {
+      window.location.href = data.link;
+    }, 1500);
   } catch (err) {
     errorMsg.textContent = 'Gagal mengaktifkan kartu: ' + err.message;
     errorMsg.style.display = 'block';
