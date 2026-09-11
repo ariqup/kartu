@@ -396,18 +396,15 @@ activateBtn.addEventListener('click', async () => {
   try {
     // Kirim data yang SUDAH tersimpan dari langkah pencarian (nama, alamat, placeId)
     // bareng PIN, dalam satu kali kirim — tidak perlu ketik ulang nama bisnis.
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // hindari CORS preflight
-      body: JSON.stringify({
-        action: 'activate',
-        cardCode: CARD_CODE,
-        name: selectedPlace.name,
-        address: selectedPlace.address,
-        placeId: selectedPlace.placeId,
-        pin: pinInput.value
-      })
+    const params = new URLSearchParams({
+      action: 'activate',
+      cardCode: CARD_CODE,
+      name: selectedPlace.name,
+      address: selectedPlace.address,
+      placeId: selectedPlace.placeId,
+      pin: pinInput.value
     });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
 
     if (!data.success) {
