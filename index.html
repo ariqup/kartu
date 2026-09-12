@@ -21,6 +21,8 @@
     --success:#16A34A;
     --success-bg:#F0FBF4;
     --danger:#D92D20;
+    --danger-bg:#FEF3F2;
+    --danger-hover:#B42318;
   }
   *{box-sizing:border-box;}
   body{
@@ -57,7 +59,7 @@
     font-size:14px;
     line-height:1.55;
     color:var(--text-secondary);
-    margin:0 0 28px;
+    margin:0 0 20px;
   }
   .desc b{color:var(--text-primary); font-weight:600;}
   label{
@@ -89,7 +91,7 @@
     border-color:var(--border-focus);
     box-shadow:0 0 0 4px rgba(47,111,237,0.12);
   }
-  #pinInput{
+  .pin-box{
     letter-spacing:10px;
     font-size:20px;
     font-weight:600;
@@ -136,51 +138,65 @@
     margin-top:6px;
   }
   .error-msg{
-    font-size:12px;
+    font-size:13px;
     color:var(--danger);
-    margin-top:6px;
+    background:var(--danger-bg);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-top:14px;
     display:none;
   }
-  button#activateBtn{
+  .success-msg{
+    font-size:13px;
+    color:var(--success);
+    background:var(--success-bg);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-top:14px;
+    display:none;
+  }
+  button{
     width:100%;
     height:52px;
     border:none;
     border-radius:14px;
-    background:var(--accent);
     color:#fff;
     font-size:15px;
     font-weight:600;
     font-family:inherit;
     cursor:pointer;
-    margin-top:28px;
     transition:background .15s ease, transform .05s ease;
   }
-  button#activateBtn:hover:not(:disabled){background:var(--accent-hover);}
-  button#activateBtn:active:not(:disabled){transform:scale(0.98);}
-  button#activateBtn:disabled{background:var(--accent-disabled); cursor:not-allowed;}
-  .success-panel{
-    display:none;
-    text-align:center;
-    padding:8px 0 4px;
+  button:active:not(:disabled){transform:scale(0.98);}
+  button.primary{background:var(--accent);}
+  button.primary:hover:not(:disabled){background:var(--accent-hover);}
+  button.primary:disabled{background:var(--accent-disabled); cursor:not-allowed;}
+  button.danger{background:var(--danger);}
+  button.danger:hover:not(:disabled){background:var(--danger-hover);}
+  button.secondary{background:#F2F4F7; color:var(--text-primary);}
+  button.secondary:hover:not(:disabled){background:#E4E7EC;}
+  button + button{margin-top:12px;}
+  .divider{
+    border:none;
+    border-top:1px solid var(--border);
+    margin:24px 0;
   }
-  .success-icon{
-    width:56px; height:56px;
-    border-radius:50%;
-    background:var(--success-bg);
-    color:var(--success);
-    display:flex; align-items:center; justify-content:center;
-    margin:0 auto 16px;
-    font-size:26px;
+  .edit-link{
+    display:inline-block;
+    color:var(--accent);
+    font-size:14px;
+    font-weight:600;
+    text-decoration:none;
+    cursor:pointer;
   }
-  .success-panel h2{
-    font-size:19px;
-    margin:0 0 8px;
-  }
-  .success-panel p{
+  .edit-link:hover{color:var(--accent-hover);}
+  .section-label{
     font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
     color:var(--text-secondary);
-    margin:0 0 20px;
-    line-height:1.5;
+    margin:0 0 12px;
   }
   .link-box{
     display:flex;
@@ -189,8 +205,7 @@
     border:1.5px solid var(--border);
     border-radius:12px;
     padding:10px 12px;
-    margin-bottom:16px;
-    text-align:left;
+    margin:14px 0 4px;
   }
   .link-box span{
     font-size:12px;
@@ -201,6 +216,8 @@
     flex:1;
   }
   .link-box button{
+    width:auto;
+    height:auto;
     border:none;
     background:#F2F4F7;
     color:var(--text-primary);
@@ -213,14 +230,13 @@
     flex-shrink:0;
   }
   .link-box button:hover{background:#E4E7EC;}
-  .reset-link{
+  .back-link{
+    display:inline-block;
+    margin-top:16px;
     font-size:13px;
-    color:var(--accent);
-    background:none;
-    border:none;
+    color:var(--text-secondary);
     cursor:pointer;
-    font-family:inherit;
-    font-weight:600;
+    text-decoration:underline;
   }
 </style>
 </head>
@@ -228,10 +244,12 @@
 
 <div class="card" id="cardEl">
 
+  <!-- Loading: cek status kartu -->
   <div id="loadingView">
     <p class="desc" style="margin:0;">Memeriksa status kartu...</p>
   </div>
 
+  <!-- Form aktivasi (kartu belum pernah dipakai) -->
   <div id="formView" style="display:none;">
     <h1>Aktivasi Kartu</h1>
     <p class="desc">Kode kartu: <b id="cardCodeText">DEMO1234</b>. Isi semua kolom di bawah untuk mengaktifkan kartu.</p>
@@ -245,129 +263,186 @@
 
     <div class="field">
       <label for="pinInput">Buat PIN (4 Digit Angka)</label>
-      <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••">
-      <p class="pin-hint">PIN ini dipakai pemilik bisnis untuk mengelola kartu nanti.</p>
+      <input type="password" class="pin-box" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••">
+      <p class="pin-hint">PIN ini dipakai untuk mengelola kartu nanti (edit bisnis, ganti PIN, atau nonaktifkan).</p>
     </div>
-    <p class="error-msg" id="errorMsg"></p>
 
-    <button id="activateBtn" disabled>Aktifkan Kartu</button>
+    <p class="error-msg" id="formErrorMsg"></p>
+    <button class="primary" id="activateBtn" disabled>Aktifkan Kartu</button>
   </div>
 
-  <div class="success-panel" id="successView">
-    <div class="success-icon">&#10003;</div>
-    <h2>Kartu aktif</h2>
-    <p id="successDesc">Kartu DEMO1234 sudah terhubung ke bisnis ini. Tempelkan atau tunjukkan kartu ke pelanggan agar mereka langsung diarahkan ke halaman ulasan.</p>
-    <div class="link-box">
-      <span id="finalLink"></span>
-      <button id="copyBtn">Salin</button>
+  <!-- Kartu sudah aktif: tombol buka review + akses edit -->
+  <div id="activeView" style="display:none;">
+    <h1>Kartu Sudah Aktif</h1>
+    <p class="desc">Kartu <b id="activeCardCode"></b> berhasil diaktifkan dan sudah bisa digunakan. Silakan cek dengan tap kartu NFC atau scan QR di kartu Anda untuk memastikan link menuju halaman review.</p>
+
+    <button class="primary" id="openReviewBtn">Buka Halaman Review</button>
+
+    <hr class="divider">
+
+    <p class="desc" style="margin-bottom:10px;">Salah isi nama bisnis atau link review? Anda bisa mengeditnya sendiri kapan saja.</p>
+    <a class="edit-link" id="editInfoLink">Edit Info Kartu &rarr;</a>
+    <p class="pin-hint" style="margin-top:16px;">Simpan atau bookmark halaman ini. Anda akan diminta PIN yang tadi dibuat untuk masuk ke halaman edit.</p>
+  </div>
+
+  <!-- Gerbang PIN sebelum edit -->
+  <div id="editGateView" style="display:none;">
+    <h1>Edit Info Kartu</h1>
+    <p class="desc">Masukkan PIN kartu <b id="gateCardCode"></b> untuk melanjutkan.</p>
+
+    <div class="field">
+      <input type="password" class="pin-box" id="gatePinInput" inputmode="numeric" maxlength="4" placeholder="••••">
     </div>
-    <button class="reset-link" id="resetBtn">Aktifkan kartu lain</button>
+
+    <p class="error-msg" id="gateErrorMsg"></p>
+    <button class="primary" id="gateSubmitBtn">Buka</button>
+    <span class="back-link" id="gateBackLink">&larr; Kembali</span>
+  </div>
+
+  <!-- Halaman edit: ganti bisnis / ganti PIN / nonaktifkan -->
+  <div id="editView" style="display:none;">
+    <h1>Edit Info Kartu</h1>
+    <p class="desc">Kode kartu: <b id="editCardCodeText"></b></p>
+
+    <p class="section-label">Ganti Nama Bisnis</p>
+    <div class="field">
+      <input type="text" id="editBizInput" placeholder="Ketik nama bisnis baru..." autocomplete="off">
+      <div class="dropdown" id="editDropdown"></div>
+      <div class="confirm" id="editConfirmBox"></div>
+    </div>
+    <button class="primary" id="saveBizBtn" disabled>Simpan Bisnis Baru</button>
+
+    <hr class="divider">
+
+    <p class="section-label">Ganti PIN</p>
+    <div class="field">
+      <input type="password" class="pin-box" id="newPinInput" inputmode="numeric" maxlength="4" placeholder="PIN baru">
+    </div>
+    <button class="primary" id="savePinBtn">Simpan PIN Baru</button>
+
+    <hr class="divider">
+
+    <p class="section-label">Zona Berbahaya</p>
+    <p class="desc" style="margin-bottom:12px;">Menonaktifkan kartu akan memutus link review saat ini. Kartu bisa diaktifkan ulang dengan bisnis baru kapan saja.</p>
+    <button class="danger" id="deactivateBtn">Nonaktifkan Kartu Ini</button>
+
+    <p class="error-msg" id="editErrorMsg"></p>
+    <p class="success-msg" id="editSuccessMsg"></p>
+
+    <span class="back-link" id="editBackLink">&larr; Kembali ke halaman utama</span>
   </div>
 
 </div>
 
 <script>
-// ============================================================
-// GANTI URL INI dengan URL Web App Apps Script kamu setelah deploy
-// (Deploy > New deployment > Web app > Execute as: Me, Access: Anyone)
-// ============================================================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1w5-WLfH3pbkFBhv6JI-T7GNL6-Mp2yV5glQHtBqMKJ3FdZ_HHJlLTNVaqCEiYS5wvg/exec';
 
-// Cari bisnis lewat backend Apps Script (yang manggil Google Places API)
+// Kode kartu diambil dari URL barcode, misal: ariqup.github.io/kartu/?kode=ABCD1234
+const urlParams = new URLSearchParams(window.location.search);
+const CARD_CODE = urlParams.get('kode') || 'DEMO1234';
+
+// ---------- Elemen: views ----------
+const loadingView = document.getElementById('loadingView');
+const formView = document.getElementById('formView');
+const activeView = document.getElementById('activeView');
+const editGateView = document.getElementById('editGateView');
+const editView = document.getElementById('editView');
+
+function showOnly(view) {
+  [loadingView, formView, activeView, editGateView, editView].forEach(v => v.style.display = 'none');
+  view.style.display = 'block';
+}
+
+// ---------- Pencarian bisnis (dipakai bareng oleh form aktivasi & edit) ----------
 async function searchBusiness(query) {
   try {
     const res = await fetch(APPS_SCRIPT_URL + '?action=search&q=' + encodeURIComponent(query));
     const data = await res.json();
-    if (data.error) {
-      console.error(data.error);
-      return [];
-    }
-    return data; // [{name, address, placeId}, ...]
+    if (data.error) { console.error(data.error); return []; }
+    return data;
   } catch (err) {
     console.error('Gagal mencari bisnis:', err);
     return [];
   }
 }
 
-const bizInput = document.getElementById('bizInput');
-const dropdown = document.getElementById('dropdown');
-const confirmBox = document.getElementById('confirmBox');
-const pinInput = document.getElementById('pinInput');
-const activateBtn = document.getElementById('activateBtn');
-const errorMsg = document.getElementById('errorMsg');
-const formView = document.getElementById('formView');
-const successView = document.getElementById('successView');
-const finalLink = document.getElementById('finalLink');
-const successDesc = document.getElementById('successDesc');
-
-let selectedPlace = null;
-let searchTimer = null;
-
 function reviewLink(placeId) {
   return 'https://search.google.com/local/writereview?placeid=' + placeId;
 }
 
-function showLoadingDropdown() {
-  dropdown.innerHTML = '<div class="dd-empty">Mencari...</div>';
-  dropdown.classList.add('open');
-}
+function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect) {
+  let selected = null;
+  let searchTimer = null;
 
-function showDropdown(results, query) {
-  dropdown.innerHTML = '';
-  if (results.length === 0) {
-    dropdown.innerHTML = '<div class="dd-empty">Tidak ada bisnis ditemukan untuk "' + query + '"</div>';
-  } else {
-    results.forEach(place => {
-      const item = document.createElement('div');
-      item.className = 'dd-item';
-      item.innerHTML = '<div class="dd-name">' + place.name + '</div><div class="dd-addr">' + place.address + '</div>';
-      item.addEventListener('click', () => selectPlace(place));
-      dropdown.appendChild(item);
-    });
+  function showLoadingDropdown() {
+    dropdownEl.innerHTML = '<div class="dd-empty">Mencari...</div>';
+    dropdownEl.classList.add('open');
   }
-  dropdown.classList.add('open');
-}
 
-function hideDropdown() {
-  dropdown.classList.remove('open');
-}
-
-function selectPlace(place) {
-  selectedPlace = place;
-  bizInput.value = reviewLink(place.placeId);
-  confirmBox.innerHTML = 'Terpilih: <b>' + place.name + '</b> — ' + place.address;
-  confirmBox.style.display = 'block';
-  hideDropdown();
-  updateActivateState();
-}
-
-bizInput.addEventListener('input', () => {
-  if (selectedPlace) {
-    selectedPlace = null;
-    confirmBox.style.display = 'none';
-    updateActivateState();
+  function showDropdown(results, query) {
+    dropdownEl.innerHTML = '';
+    if (results.length === 0) {
+      dropdownEl.innerHTML = '<div class="dd-empty">Tidak ada bisnis ditemukan untuk "' + query + '"</div>';
+    } else {
+      results.forEach(place => {
+        const item = document.createElement('div');
+        item.className = 'dd-item';
+        item.innerHTML = '<div class="dd-name">' + place.name + '</div><div class="dd-addr">' + place.address + '</div>';
+        item.addEventListener('click', () => selectPlace(place));
+        dropdownEl.appendChild(item);
+      });
+    }
+    dropdownEl.classList.add('open');
   }
-  const q = bizInput.value.trim();
-  clearTimeout(searchTimer);
-  if (!q) { hideDropdown(); return; }
-  showLoadingDropdown();
-  searchTimer = setTimeout(async () => {
-    const results = await searchBusiness(q);
-    showDropdown(results, q);
-  }, 400);
-});
 
-bizInput.addEventListener('focus', async () => {
-  const q = bizInput.value.trim();
-  if (!selectedPlace && q) {
+  function hideDropdown() { dropdownEl.classList.remove('open'); }
+
+  function selectPlace(place) {
+    selected = place;
+    inputEl.value = reviewLink(place.placeId);
+    confirmEl.innerHTML = 'Terpilih: <b>' + place.name + '</b> — ' + place.address;
+    confirmEl.style.display = 'block';
+    hideDropdown();
+    onSelect(place);
+  }
+
+  inputEl.addEventListener('input', () => {
+    if (selected) { selected = null; confirmEl.style.display = 'none'; onSelect(null); }
+    const q = inputEl.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) { hideDropdown(); return; }
     showLoadingDropdown();
-    showDropdown(await searchBusiness(q), q);
-  }
-});
+    searchTimer = setTimeout(async () => {
+      const results = await searchBusiness(q);
+      showDropdown(results, q);
+    }, 400);
+  });
 
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.field')) hideDropdown();
-});
+  inputEl.addEventListener('focus', async () => {
+    const q = inputEl.value.trim();
+    if (!selected && q) { showLoadingDropdown(); showDropdown(await searchBusiness(q), q); }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.field')) hideDropdown();
+  });
+
+  return { getSelected: () => selected };
+}
+
+// ---------- FORM AKTIVASI (kartu belum aktif) ----------
+document.getElementById('cardCodeText').textContent = CARD_CODE;
+
+const activateBtn = document.getElementById('activateBtn');
+const formErrorMsg = document.getElementById('formErrorMsg');
+const pinInput = document.getElementById('pinInput');
+
+const formSearch = setupBusinessSearch(
+  document.getElementById('bizInput'),
+  document.getElementById('dropdown'),
+  document.getElementById('confirmBox'),
+  () => updateActivateState()
+);
 
 pinInput.addEventListener('input', () => {
   pinInput.value = pinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
@@ -375,51 +450,21 @@ pinInput.addEventListener('input', () => {
 });
 
 function updateActivateState() {
-  const ready = !!selectedPlace && pinInput.value.length === 4;
+  const ready = !!formSearch.getSelected() && pinInput.value.length === 4;
   activateBtn.disabled = !ready;
-  if (ready) errorMsg.style.display = 'none';
+  if (ready) formErrorMsg.style.display = 'none';
 }
 
-// Kode kartu diambil dari URL barcode, misal: ariqup.github.io/kartu/?kode=ABCD1234
-// Kalau tidak ada parameter kode, pakai DEMO1234 sebagai fallback untuk testing.
-const urlParams = new URLSearchParams(window.location.search);
-const CARD_CODE = urlParams.get('kode') || 'DEMO1234';
-document.getElementById('cardCodeText').textContent = CARD_CODE;
-
-const loadingView = document.getElementById('loadingView');
-
-// Cek dulu ke backend: kartu ini sudah pernah diaktifkan atau belum.
-// Kalau sudah aktif, langsung lempar ke halaman Google Review-nya
-// (barcode yang sama otomatis "berubah fungsi" jadi link review).
-// Kalau belum, baru tampilkan form aktivasi.
-(async function checkCardOnLoad() {
-  try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=checkStatus&cardCode=' + encodeURIComponent(CARD_CODE));
-    const data = await res.json();
-
-    if (data.activated && data.link) {
-      loadingView.innerHTML = '<p class="desc" style="margin:0;">Mengarahkan ke halaman ulasan...</p>';
-      window.location.href = data.link;
-      return;
-    }
-  } catch (err) {
-    console.error('Gagal cek status kartu:', err);
-    // Kalau gagal cek (misal koneksi bermasalah), tetap tampilkan form aktivasi sebagai fallback.
-  }
-
-  loadingView.style.display = 'none';
-  formView.style.display = 'block';
-})();
-
 activateBtn.addEventListener('click', async () => {
-  if (!selectedPlace) {
-    errorMsg.textContent = 'Cari dan pilih nama bisnis terlebih dahulu.';
-    errorMsg.style.display = 'block';
+  const selected = formSearch.getSelected();
+  if (!selected) {
+    formErrorMsg.textContent = 'Cari dan pilih nama bisnis terlebih dahulu.';
+    formErrorMsg.style.display = 'block';
     return;
   }
   if (pinInput.value.length !== 4) {
-    errorMsg.textContent = 'PIN harus 4 digit angka.';
-    errorMsg.style.display = 'block';
+    formErrorMsg.textContent = 'PIN harus 4 digit angka.';
+    formErrorMsg.style.display = 'block';
     return;
   }
 
@@ -427,62 +472,222 @@ activateBtn.addEventListener('click', async () => {
   activateBtn.textContent = 'Menyimpan...';
 
   try {
-    // Kirim data yang SUDAH tersimpan dari langkah pencarian (nama, alamat, placeId)
-    // bareng PIN, dalam satu kali kirim — tidak perlu ketik ulang nama bisnis.
     const params = new URLSearchParams({
       action: 'activate',
       cardCode: CARD_CODE,
-      name: selectedPlace.name,
-      address: selectedPlace.address,
-      placeId: selectedPlace.placeId,
+      name: selected.name,
+      address: selected.address,
+      placeId: selected.placeId,
       pin: pinInput.value
     });
     const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
 
-    if (!data.success) {
-      throw new Error(data.error || 'Gagal menyimpan aktivasi.');
-    }
+    if (!data.success) throw new Error(data.error || 'Gagal menyimpan aktivasi.');
 
-    finalLink.textContent = data.link;
-    finalLink.title = data.link;
-    successDesc.textContent = 'Kartu ' + CARD_CODE + ' sudah terhubung ke "' + selectedPlace.name + '". Mengarahkan ke halaman ulasan...';
-    formView.style.display = 'none';
-    successView.style.display = 'block';
-
-    // Otomatis arahkan ke halaman Google Review setelah 1.5 detik
-    setTimeout(function () {
-      window.location.href = data.link;
-    }, 1500);
+    showActiveView(data.link);
   } catch (err) {
-    errorMsg.textContent = 'Gagal mengaktifkan kartu: ' + err.message;
-    errorMsg.style.display = 'block';
+    formErrorMsg.textContent = 'Gagal mengaktifkan kartu: ' + err.message;
+    formErrorMsg.style.display = 'block';
   } finally {
     activateBtn.disabled = false;
     activateBtn.textContent = 'Aktifkan Kartu';
   }
 });
 
-document.getElementById('copyBtn').addEventListener('click', () => {
-  navigator.clipboard.writeText(finalLink.textContent).then(() => {
-    const btn = document.getElementById('copyBtn');
-    const original = btn.textContent;
-    btn.textContent = 'Tersalin';
-    setTimeout(() => { btn.textContent = original; }, 1500);
-  });
+// ---------- TAMPILAN "KARTU SUDAH AKTIF" ----------
+let currentLink = null;
+
+function showActiveView(link) {
+  currentLink = link;
+  document.getElementById('activeCardCode').textContent = CARD_CODE;
+  showOnly(activeView);
+}
+
+document.getElementById('openReviewBtn').addEventListener('click', () => {
+  if (currentLink) window.location.href = currentLink;
 });
 
-document.getElementById('resetBtn').addEventListener('click', () => {
-  selectedPlace = null;
-  bizInput.value = '';
-  pinInput.value = '';
-  confirmBox.style.display = 'none';
-  errorMsg.style.display = 'none';
-  updateActivateState();
-  successView.style.display = 'none';
-  formView.style.display = 'block';
-  bizInput.focus();
+document.getElementById('editInfoLink').addEventListener('click', () => {
+  document.getElementById('gateCardCode').textContent = CARD_CODE;
+  document.getElementById('gatePinInput').value = '';
+  document.getElementById('gateErrorMsg').style.display = 'none';
+  showOnly(editGateView);
 });
+
+// ---------- GERBANG PIN ----------
+let verifiedPin = null;
+
+document.getElementById('gateBackLink').addEventListener('click', () => showOnly(activeView));
+
+document.getElementById('gateSubmitBtn').addEventListener('click', async () => {
+  const gateErrorMsg = document.getElementById('gateErrorMsg');
+  const pin = document.getElementById('gatePinInput').value.trim();
+
+  if (pin.length !== 4) {
+    gateErrorMsg.textContent = 'PIN harus 4 digit angka.';
+    gateErrorMsg.style.display = 'block';
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({ action: 'verifyPin', cardCode: CARD_CODE, pin });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const data = await res.json();
+
+    if (!data.valid) throw new Error(data.error || 'PIN salah.');
+
+    verifiedPin = pin;
+    openEditView();
+  } catch (err) {
+    gateErrorMsg.textContent = err.message;
+    gateErrorMsg.style.display = 'block';
+  }
+});
+
+// ---------- HALAMAN EDIT ----------
+const saveBizBtn = document.getElementById('saveBizBtn');
+const editErrorMsg = document.getElementById('editErrorMsg');
+const editSuccessMsg = document.getElementById('editSuccessMsg');
+
+const editSearch = setupBusinessSearch(
+  document.getElementById('editBizInput'),
+  document.getElementById('editDropdown'),
+  document.getElementById('editConfirmBox'),
+  (place) => { saveBizBtn.disabled = !place; }
+);
+
+function openEditView() {
+  document.getElementById('editCardCodeText').textContent = CARD_CODE;
+  document.getElementById('editBizInput').value = '';
+  document.getElementById('editConfirmBox').style.display = 'none';
+  document.getElementById('newPinInput').value = '';
+  saveBizBtn.disabled = true;
+  editErrorMsg.style.display = 'none';
+  editSuccessMsg.style.display = 'none';
+  showOnly(editView);
+}
+
+document.getElementById('editBackLink').addEventListener('click', () => showOnly(activeView));
+
+saveBizBtn.addEventListener('click', async () => {
+  const place = editSearch.getSelected();
+  if (!place) return;
+
+  editErrorMsg.style.display = 'none';
+  editSuccessMsg.style.display = 'none';
+  saveBizBtn.disabled = true;
+  saveBizBtn.textContent = 'Menyimpan...';
+
+  try {
+    const params = new URLSearchParams({
+      action: 'update',
+      cardCode: CARD_CODE,
+      oldPin: verifiedPin,
+      newName: place.name,
+      newAddress: place.address,
+      newPlaceId: place.placeId
+    });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Gagal menyimpan.');
+
+    currentLink = reviewLink(place.placeId);
+    editSuccessMsg.textContent = 'Bisnis berhasil diganti ke "' + place.name + '".';
+    editSuccessMsg.style.display = 'block';
+  } catch (err) {
+    editErrorMsg.textContent = err.message;
+    editErrorMsg.style.display = 'block';
+  } finally {
+    saveBizBtn.disabled = false;
+    saveBizBtn.textContent = 'Simpan Bisnis Baru';
+  }
+});
+
+document.getElementById('savePinBtn').addEventListener('click', async () => {
+  const newPinInput = document.getElementById('newPinInput');
+  newPinInput.value = newPinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+
+  editErrorMsg.style.display = 'none';
+  editSuccessMsg.style.display = 'none';
+
+  if (newPinInput.value.length !== 4) {
+    editErrorMsg.textContent = 'PIN baru harus 4 digit angka.';
+    editErrorMsg.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('savePinBtn');
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+
+  try {
+    const params = new URLSearchParams({
+      action: 'update',
+      cardCode: CARD_CODE,
+      oldPin: verifiedPin,
+      newPin: newPinInput.value
+    });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Gagal menyimpan PIN baru.');
+
+    verifiedPin = newPinInput.value; // PIN aktif sekarang yang baru
+    editSuccessMsg.textContent = 'PIN berhasil diganti.';
+    editSuccessMsg.style.display = 'block';
+    newPinInput.value = '';
+  } catch (err) {
+    editErrorMsg.textContent = err.message;
+    editErrorMsg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Simpan PIN Baru';
+  }
+});
+
+document.getElementById('deactivateBtn').addEventListener('click', async () => {
+  if (!confirm('Yakin mau menonaktifkan kartu ' + CARD_CODE + '? Link review saat ini akan berhenti berfungsi.')) return;
+
+  editErrorMsg.style.display = 'none';
+  editSuccessMsg.style.display = 'none';
+
+  const btn = document.getElementById('deactivateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+
+  try {
+    const params = new URLSearchParams({ action: 'reset', cardCode: CARD_CODE, pin: verifiedPin });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Gagal menonaktifkan kartu.');
+
+    editSuccessMsg.textContent = 'Kartu berhasil dinonaktifkan. Memuat ulang halaman...';
+    editSuccessMsg.style.display = 'block';
+    setTimeout(() => { window.location.href = window.location.pathname + '?kode=' + encodeURIComponent(CARD_CODE); }, 1200);
+  } catch (err) {
+    editErrorMsg.textContent = err.message;
+    editErrorMsg.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Nonaktifkan Kartu Ini';
+  }
+});
+
+// ---------- CEK STATUS SAAT HALAMAN DIBUKA ----------
+(async function checkCardOnLoad() {
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=checkStatus&cardCode=' + encodeURIComponent(CARD_CODE));
+    const data = await res.json();
+
+    if (data.activated && data.link) {
+      showActiveView(data.link);
+      return;
+    }
+  } catch (err) {
+    console.error('Gagal cek status kartu:', err);
+  }
+
+  showOnly(formView);
+})();
 </script>
 
 </body>
