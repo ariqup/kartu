@@ -282,7 +282,12 @@
 
     <p class="desc" style="margin-bottom:10px;">Salah isi nama bisnis atau link review? Anda bisa mengeditnya sendiri kapan saja.</p>
     <a class="edit-link" id="editInfoLink">Edit Info Kartu &rarr;</a>
-    <p class="pin-hint" style="margin-top:16px;">Simpan atau bookmark halaman ini. Anda akan diminta PIN yang tadi dibuat untuk masuk ke halaman edit.</p>
+
+    <div class="link-box" style="margin-top:16px;">
+      <span id="manageLinkText"></span>
+      <button id="copyManageLinkBtn">Salin</button>
+    </div>
+    <p class="pin-hint">Simpan link ini (bookmark halaman ini sekarang, atau salin linknya) — Anda akan diminta PIN yang tadi dibuat setiap kali mau masuk ke halaman edit.</p>
   </div>
 
   <!-- Gerbang PIN sebelum edit -->
@@ -501,8 +506,28 @@ let currentLink = null;
 function showActiveView(link) {
   currentLink = link;
   document.getElementById('activeCardCode').textContent = CARD_CODE;
+
+  // Tulis ulang URL di address bar supaya mengandung &kelola=1, jadi kalau
+  // halaman ini di-bookmark sekarang, bookmark-nya otomatis jadi link kelola
+  // (bukan link publik yang auto-redirect ke review).
+  const manageUrl = window.location.origin + window.location.pathname + '?kode=' + encodeURIComponent(CARD_CODE) + '&kelola=1';
+  history.replaceState(null, '', manageUrl);
+
+  const manageLinkText = document.getElementById('manageLinkText');
+  manageLinkText.textContent = manageUrl;
+  manageLinkText.title = manageUrl;
+
   showOnly(activeView);
 }
+
+document.getElementById('copyManageLinkBtn').addEventListener('click', () => {
+  navigator.clipboard.writeText(document.getElementById('manageLinkText').textContent).then(() => {
+    const btn = document.getElementById('copyManageLinkBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Tersalin';
+    setTimeout(() => { btn.textContent = original; }, 1200);
+  });
+});
 
 document.getElementById('openReviewBtn').addEventListener('click', () => {
   if (currentLink) window.location.href = currentLink;
@@ -673,13 +698,24 @@ document.getElementById('deactivateBtn').addEventListener('click', async () => {
 });
 
 // ---------- CEK STATUS SAAT HALAMAN DIBUKA ----------
+// Parameter &kelola=1 HANYA dipakai untuk link privat yang kamu kasih ke pemilik bisnis,
+// TIDAK boleh ada di barcode/QR/NFC kartu fisik. Tanpa parameter ini, kartu yang sudah
+// aktif akan langsung redirect ke halaman review tanpa nampilkan tombol/link apapun,
+// supaya orang yang cuma scan kartu gak bisa nemu jalan ke halaman edit sama sekali.
+const isManageMode = urlParams.get('kelola') === '1';
+
 (async function checkCardOnLoad() {
   try {
     const res = await fetch(APPS_SCRIPT_URL + '?action=checkStatus&cardCode=' + encodeURIComponent(CARD_CODE));
     const data = await res.json();
 
     if (data.activated && data.link) {
-      showActiveView(data.link);
+      if (isManageMode) {
+        showActiveView(data.link);
+      } else {
+        // Mode publik: langsung redirect, tanpa nampilkan halaman apapun di antaranya.
+        window.location.replace(data.link);
+      }
       return;
     }
   } catch (err) {
