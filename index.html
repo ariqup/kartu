@@ -92,9 +92,10 @@
     box-shadow:0 0 0 4px rgba(47,111,237,0.12);
   }
   .pin-box{
-    letter-spacing:10px;
-    font-size:20px;
+    letter-spacing:7px;
+    font-size:18px;
     font-weight:600;
+    text-align:center;
   }
   .dropdown{
     position:absolute;
@@ -262,8 +263,8 @@
     </div>
 
     <div class="field">
-      <label for="pinInput">Buat PIN (4 Digit Angka)</label>
-      <input type="password" class="pin-box" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••">
+      <label for="pinInput">Buat PIN (6 Digit Angka)</label>
+      <input type="password" class="pin-box" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••••">
       <p class="pin-hint">PIN ini dipakai untuk mengelola kartu nanti (edit bisnis, ganti PIN, atau nonaktifkan).</p>
     </div>
 
@@ -296,7 +297,7 @@
     <p class="desc">Masukkan PIN kartu <b id="gateCardCode"></b> untuk melanjutkan.</p>
 
     <div class="field">
-      <input type="password" class="pin-box" id="gatePinInput" inputmode="numeric" maxlength="4" placeholder="••••">
+      <input type="password" class="pin-box" id="gatePinInput" inputmode="numeric" maxlength="6" placeholder="••••••">
     </div>
 
     <p class="error-msg" id="gateErrorMsg"></p>
@@ -321,7 +322,7 @@
 
     <p class="section-label">Ganti PIN</p>
     <div class="field">
-      <input type="password" class="pin-box" id="newPinInput" inputmode="numeric" maxlength="4" placeholder="PIN baru">
+      <input type="password" class="pin-box" id="newPinInput" inputmode="numeric" maxlength="6" placeholder="PIN baru">
     </div>
     <button class="primary" id="savePinBtn">Simpan PIN Baru</button>
 
@@ -450,12 +451,12 @@ const formSearch = setupBusinessSearch(
 );
 
 pinInput.addEventListener('input', () => {
-  pinInput.value = pinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+  pinInput.value = pinInput.value.replace(/[^0-9]/g, '').slice(0, 6);
   updateActivateState();
 });
 
 function updateActivateState() {
-  const ready = !!formSearch.getSelected() && pinInput.value.length === 4;
+  const ready = !!formSearch.getSelected() && pinInput.value.length === 6;
   activateBtn.disabled = !ready;
   if (ready) formErrorMsg.style.display = 'none';
 }
@@ -467,8 +468,8 @@ activateBtn.addEventListener('click', async () => {
     formErrorMsg.style.display = 'block';
     return;
   }
-  if (pinInput.value.length !== 4) {
-    formErrorMsg.textContent = 'PIN harus 4 digit angka.';
+  if (pinInput.value.length !== 6) {
+    formErrorMsg.textContent = 'PIN harus 6 digit angka.';
     formErrorMsg.style.display = 'block';
     return;
   }
@@ -549,8 +550,8 @@ document.getElementById('gateSubmitBtn').addEventListener('click', async () => {
   const gateErrorMsg = document.getElementById('gateErrorMsg');
   const pin = document.getElementById('gatePinInput').value.trim();
 
-  if (pin.length !== 4) {
-    gateErrorMsg.textContent = 'PIN harus 4 digit angka.';
+  if (pin.length !== 6) {
+    gateErrorMsg.textContent = 'PIN harus 6 digit angka.';
     gateErrorMsg.style.display = 'block';
     return;
   }
@@ -631,13 +632,13 @@ saveBizBtn.addEventListener('click', async () => {
 
 document.getElementById('savePinBtn').addEventListener('click', async () => {
   const newPinInput = document.getElementById('newPinInput');
-  newPinInput.value = newPinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+  newPinInput.value = newPinInput.value.replace(/[^0-9]/g, '').slice(0, 6);
 
   editErrorMsg.style.display = 'none';
   editSuccessMsg.style.display = 'none';
 
-  if (newPinInput.value.length !== 4) {
-    editErrorMsg.textContent = 'PIN baru harus 4 digit angka.';
+  if (newPinInput.value.length !== 6) {
+    editErrorMsg.textContent = 'PIN baru harus 6 digit angka.';
     editErrorMsg.style.display = 'block';
     return;
   }
