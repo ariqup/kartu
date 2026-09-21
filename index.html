@@ -338,10 +338,19 @@
     <span class="back-link" id="editBackLink">&larr; Kembali ke halaman utama</span>
   </div>
 
+  <!-- Footer bantuan: muncul di semua halaman kecuali loading -->
+  <div id="footerHelp" style="display:none;">
+    <hr class="divider" style="margin:20px 0 14px;">
+    <p class="pin-hint" style="text-align:center; margin:0;">
+      Butuh bantuan? <a href="#" id="adminLink" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:none;">Hubungi Admin via WhatsApp</a>
+    </p>
+  </div>
+
 </div>
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1w5-WLfH3pbkFBhv6JI-T7GNL6-Mp2yV5glQHtBqMKJ3FdZ_HHJlLTNVaqCEiYS5wvg/exec';
+const ADMIN_WHATSAPP = '6282188777879';
 
 // Kode kartu diambil dari URL barcode, misal: ariqup.github.io/kartu/?kode=ABCD1234
 const urlParams = new URLSearchParams(window.location.search);
@@ -353,10 +362,19 @@ const formView = document.getElementById('formView');
 const activeView = document.getElementById('activeView');
 const editGateView = document.getElementById('editGateView');
 const editView = document.getElementById('editView');
+const footerHelp = document.getElementById('footerHelp');
+const adminLink = document.getElementById('adminLink');
+
+function updateAdminLink() {
+  const message = 'Halo Admin, saya butuh bantuan untuk Kartu Google Review.\nKode kartu: ' + CARD_CODE;
+  adminLink.href = 'https://wa.me/' + ADMIN_WHATSAPP + '?text=' + encodeURIComponent(message);
+}
 
 function showOnly(view) {
   [loadingView, formView, activeView, editGateView, editView].forEach(v => v.style.display = 'none');
   view.style.display = 'block';
+  footerHelp.style.display = (view === loadingView) ? 'none' : 'block';
+  if (view !== loadingView) updateAdminLink();
 }
 
 // ---------- Pencarian bisnis (dipakai bareng oleh form aktivasi & edit) ----------
