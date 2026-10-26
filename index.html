@@ -356,6 +356,20 @@ const ADMIN_WHATSAPP = '6282188777879';
 const urlParams = new URLSearchParams(window.location.search);
 const CARD_CODE = urlParams.get('kode') || 'DEMO1234';
 
+// Lokasi browser (opsional) dipakai untuk membias hasil pencarian nama bisnis
+// supaya bisnis lokal (terutama yang baru/review sedikit) tidak kalah
+// bersaing melawan bisnis bernama mirip di kota/negara lain.
+// Kalau user menolak izin lokasi, pencarian tetap jalan seperti biasa
+// (tanpa bias), tidak ada yang error.
+let userLat = '';
+let userLng = '';
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; },
+    (err) => { console.warn('Lokasi tidak diizinkan/gagal diambil:', err); }
+  );
+}
+
 // ---------- Elemen: views ----------
 const loadingView = document.getElementById('loadingView');
 const formView = document.getElementById('formView');
@@ -380,7 +394,11 @@ function showOnly(view) {
 // ---------- Pencarian bisnis (dipakai bareng oleh form aktivasi & edit) ----------
 async function searchBusiness(query) {
   try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=search&q=' + encodeURIComponent(query));
+    let url = APPS_SCRIPT_URL + '?action=search&q=' + encodeURIComponent(query);
+    if (userLat && userLng) {
+      url += '&lat=' + encodeURIComponent(userLat) + '&lng=' + encodeURIComponent(userLng);
+    }
+    const res = await fetch(url);
     const data = await res.json();
     if (data.error) { console.error(data.error); return []; }
     return data;
@@ -618,10 +636,10 @@ saveBizBtn.addEventListener('click', async () => {
   const place = editSearch.getSelected();
   if (!place) return;
 
-  editErrorMsg.style.display = 'none';
-  editSuccessMsg.style.display = 'none';
   saveBizBtn.disabled = true;
   saveBizBtn.textContent = 'Menyimpan...';
+  editErrorMsg.style.display = 'none';
+  editSuccessMsg.style.display = 'none';
 
   try {
     const params = new URLSearchParams({
@@ -634,10 +652,10 @@ saveBizBtn.addEventListener('click', async () => {
     });
     const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Gagal menyimpan.');
 
-    currentLink = reviewLink(place.placeId);
-    editSuccessMsg.textContent = 'Bisnis berhasil diganti ke "' + place.name + '".';
+    if (!data.success) throw new Error(data.error || 'Gagal menyimpan perubahan.');
+
+    editSuccessMsg.textContent = 'Nama bisnis berhasil diperbarui.';
     editSuccessMsg.style.display = 'block';
   } catch (err) {
     editErrorMsg.textContent = err.message;
@@ -650,98 +668,82 @@ saveBizBtn.addEventListener('click', async () => {
 
 document.getElementById('savePinBtn').addEventListener('click', async () => {
   const newPinInput = document.getElementById('newPinInput');
-  newPinInput.value = newPinInput.value.replace(/[^0-9]/g, '').slice(0, 6);
+  const newPin = newPinInput.value.trim();
 
   editErrorMsg.style.display = 'none';
   editSuccessMsg.style.display = 'none';
 
-  if (newPinInput.value.length !== 6) {
+  if (newPin.length !== 6) {
     editErrorMsg.textContent = 'PIN baru harus 6 digit angka.';
     editErrorMsg.style.display = 'block';
     return;
   }
-
-  const btn = document.getElementById('savePinBtn');
-  btn.disabled = true;
-  btn.textContent = 'Menyimpan...';
 
   try {
     const params = new URLSearchParams({
       action: 'update',
       cardCode: CARD_CODE,
       oldPin: verifiedPin,
-      newPin: newPinInput.value
+      newPin: newPin
     });
     const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Gagal menyimpan PIN baru.');
 
-    verifiedPin = newPinInput.value; // PIN aktif sekarang yang baru
+    if (!data.success) throw new Error(data.error || 'Gagal mengganti PIN.');
+
+    verifiedPin = newPin;
+    newPinInput.value = '';
     editSuccessMsg.textContent = 'PIN berhasil diganti.';
     editSuccessMsg.style.display = 'block';
-    newPinInput.value = '';
   } catch (err) {
     editErrorMsg.textContent = err.message;
     editErrorMsg.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Simpan PIN Baru';
   }
 });
 
 document.getElementById('deactivateBtn').addEventListener('click', async () => {
-  if (!confirm('Yakin mau menonaktifkan kartu ' + CARD_CODE + '? Link review saat ini akan berhenti berfungsi.')) return;
+  if (!confirm('Yakin mau nonaktifkan kartu ini? Link review saat ini akan terputus.')) return;
 
   editErrorMsg.style.display = 'none';
   editSuccessMsg.style.display = 'none';
-
-  const btn = document.getElementById('deactivateBtn');
-  btn.disabled = true;
-  btn.textContent = 'Memproses...';
 
   try {
     const params = new URLSearchParams({ action: 'reset', cardCode: CARD_CODE, pin: verifiedPin });
     const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
+
     if (!data.success) throw new Error(data.error || 'Gagal menonaktifkan kartu.');
 
-    editSuccessMsg.textContent = 'Kartu berhasil dinonaktifkan. Memuat ulang halaman...';
-    editSuccessMsg.style.display = 'block';
-    setTimeout(() => { window.location.href = window.location.pathname + '?kode=' + encodeURIComponent(CARD_CODE); }, 1200);
+    window.location.href = window.location.origin + window.location.pathname + '?kode=' + encodeURIComponent(CARD_CODE);
   } catch (err) {
     editErrorMsg.textContent = err.message;
     editErrorMsg.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Nonaktifkan Kartu Ini';
   }
 });
 
-// ---------- CEK STATUS SAAT HALAMAN DIBUKA ----------
-// Parameter &kelola=1 HANYA dipakai untuk link privat yang kamu kasih ke pemilik bisnis,
-// TIDAK boleh ada di barcode/QR/NFC kartu fisik. Tanpa parameter ini, kartu yang sudah
-// aktif akan langsung redirect ke halaman review tanpa nampilkan tombol/link apapun,
-// supaya orang yang cuma scan kartu gak bisa nemu jalan ke halaman edit sama sekali.
-const isManageMode = urlParams.get('kelola') === '1';
+// ---------- CEK STATUS KARTU SAAT HALAMAN DIBUKA ----------
+(async function init() {
+  const forceManage = urlParams.get('kelola') === '1';
 
-(async function checkCardOnLoad() {
   try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=checkStatus&cardCode=' + encodeURIComponent(CARD_CODE));
+    const params = new URLSearchParams({ action: 'checkStatus', cardCode: CARD_CODE });
+    const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
 
-    if (data.activated && data.link) {
-      if (isManageMode) {
+    if (data.activated) {
+      if (forceManage) {
         showActiveView(data.link);
       } else {
-        // Mode publik: langsung redirect, tanpa nampilkan halaman apapun di antaranya.
-        window.location.replace(data.link);
+        // Kartu publik yang sudah aktif: langsung arahkan ke halaman review
+        window.location.href = data.link;
       }
-      return;
+    } else {
+      showOnly(formView);
     }
   } catch (err) {
-    console.error('Gagal cek status kartu:', err);
+    console.error('Gagal memeriksa status kartu:', err);
+    showOnly(formView);
   }
-
-  showOnly(formView);
 })();
 </script>
 
