@@ -174,13 +174,29 @@
   button.primary:disabled{background:var(--accent-disabled); cursor:not-allowed;}
   button.danger{background:var(--danger);}
   button.danger:hover:not(:disabled){background:var(--danger-hover);}
-  button.secondary{background:#F2F4F7; color:var(--text-primary);}
+  button.secondary{background:#F2F4F7; color:var(--text-primary); height:44px; font-size:13px;}
   button.secondary:hover:not(:disabled){background:#E4E7EC;}
   button + button{margin-top:12px;}
   .divider{
     border:none;
     border-top:1px solid var(--border);
     margin:24px 0;
+  }
+  .or-divider{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:16px 0;
+    color:var(--text-secondary);
+    font-size:12px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .or-divider::before, .or-divider::after{
+    content:'';
+    flex:1;
+    border-top:1px solid var(--border);
   }
   .edit-link{
     display:inline-block;
@@ -262,7 +278,15 @@
       <div class="confirm" id="confirmBox"></div>
     </div>
 
+    <div class="or-divider">atau</div>
+
     <div class="field">
+      <label for="bizMapsLinkInput">Tempel Link Google Maps Bisnis</label>
+      <input type="text" id="bizMapsLinkInput" placeholder="Tempel link share dari Google Maps di sini" autocomplete="off">
+      <button type="button" class="secondary" id="bizMapsLinkBtn" style="margin-top:8px;">Cari dari Link Maps</button>
+    </div>
+
+    <div class="field" style="margin-top:20px;">
       <label for="pinInput">Buat PIN (6 Digit Angka)</label>
       <input type="password" class="pin-box" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••••">
       <p class="pin-hint">PIN ini dipakai untuk mengelola kartu nanti (edit bisnis, ganti PIN, atau nonaktifkan).</p>
@@ -316,7 +340,16 @@
       <div class="dropdown" id="editDropdown"></div>
       <div class="confirm" id="editConfirmBox"></div>
     </div>
-    <button class="primary" id="saveBizBtn" disabled>Simpan Bisnis Baru</button>
+
+    <div class="or-divider">atau</div>
+
+    <div class="field">
+      <label for="editBizMapsLinkInput">Tempel Link Google Maps Bisnis</label>
+      <input type="text" id="editBizMapsLinkInput" placeholder="Tempel link share dari Google Maps di sini" autocomplete="off">
+      <button type="button" class="secondary" id="editBizMapsLinkBtn" style="margin-top:8px;">Cari dari Link Maps</button>
+    </div>
+
+    <button class="primary" id="saveBizBtn" disabled style="margin-top:20px;">Simpan Bisnis Baru</button>
 
     <hr class="divider">
 
@@ -391,7 +424,7 @@ function showOnly(view) {
   if (view !== loadingView) updateAdminLink();
 }
 
-// ---------- Pencarian bisnis (dipakai bareng oleh form aktivasi & edit) ----------
+// ---------- Pencarian bisnis lewat nama (dipakai bareng oleh form aktivasi & edit) ----------
 async function searchBusiness(query) {
   try {
     let url = APPS_SCRIPT_URL + '?action=search&q=' + encodeURIComponent(query);
@@ -408,11 +441,30 @@ async function searchBusiness(query) {
   }
 }
 
+// ---------- Pencarian bisnis lewat link Google Maps yang ditempel ----------
+async function searchBusinessByMapsLink(mapsUrl) {
+  try {
+    const url = APPS_SCRIPT_URL + '?action=resolveMapsLink&url=' + encodeURIComponent(mapsUrl);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.error) { console.error(data.error); return []; }
+    return data;
+  } catch (err) {
+    console.error('Gagal membaca link Maps:', err);
+    return [];
+  }
+}
+
 function reviewLink(placeId) {
   return 'https://search.google.com/local/writereview?placeid=' + placeId;
 }
 
-function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect) {
+// inputEl/dropdownEl/confirmEl: field pencarian nama (seperti sebelumnya)
+// mapsLinkInputEl/mapsLinkBtnEl (opsional): field + tombol "tempel link Maps".
+// Keduanya bermuara ke dropdown & confirm box yang sama, jadi apa pun
+// yang dipilih user (dari nama atau dari link) akan lewat selectPlace()
+// yang sama, dan menghasilkan link review yang sama juga.
+function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect, mapsLinkInputEl, mapsLinkBtnEl) {
   let selected = null;
   let searchTimer = null;
 
@@ -430,7 +482,12 @@ function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect) {
         const item = document.createElement('div');
         item.className = 'dd-item';
         item.innerHTML = '<div class="dd-name">' + place.name + '</div><div class="dd-addr">' + place.address + '</div>';
-        item.addEventListener('click', () => selectPlace(place));
+        if (place.placeId) {
+          item.addEventListener('click', () => selectPlace(place));
+        } else {
+          // Pesan info/error dari backend (placeId kosong) — tidak bisa diklik
+          item.style.cursor = 'default';
+        }
         dropdownEl.appendChild(item);
       });
     }
@@ -469,6 +526,17 @@ function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect) {
     if (!e.target.closest('.field')) hideDropdown();
   });
 
+  if (mapsLinkInputEl && mapsLinkBtnEl) {
+    mapsLinkBtnEl.addEventListener('click', async () => {
+      const link = mapsLinkInputEl.value.trim();
+      if (!link) return;
+      if (selected) { selected = null; confirmEl.style.display = 'none'; onSelect(null); }
+      showLoadingDropdown();
+      const results = await searchBusinessByMapsLink(link);
+      showDropdown(results, 'link Maps');
+    });
+  }
+
   return { getSelected: () => selected };
 }
 
@@ -483,7 +551,9 @@ const formSearch = setupBusinessSearch(
   document.getElementById('bizInput'),
   document.getElementById('dropdown'),
   document.getElementById('confirmBox'),
-  () => updateActivateState()
+  () => updateActivateState(),
+  document.getElementById('bizMapsLinkInput'),
+  document.getElementById('bizMapsLinkBtn')
 );
 
 pinInput.addEventListener('input', () => {
@@ -616,12 +686,15 @@ const editSearch = setupBusinessSearch(
   document.getElementById('editBizInput'),
   document.getElementById('editDropdown'),
   document.getElementById('editConfirmBox'),
-  (place) => { saveBizBtn.disabled = !place; }
+  (place) => { saveBizBtn.disabled = !place; },
+  document.getElementById('editBizMapsLinkInput'),
+  document.getElementById('editBizMapsLinkBtn')
 );
 
 function openEditView() {
   document.getElementById('editCardCodeText').textContent = CARD_CODE;
   document.getElementById('editBizInput').value = '';
+  document.getElementById('editBizMapsLinkInput').value = '';
   document.getElementById('editConfirmBox').style.display = 'none';
   document.getElementById('newPinInput').value = '';
   saveBizBtn.disabled = true;
