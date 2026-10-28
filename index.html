@@ -424,6 +424,15 @@ function showOnly(view) {
   if (view !== loadingView) updateAdminLink();
 }
 
+// Ubah respons error dari server jadi item dropdown yang jelas (tidak bisa diklik)
+function serverErrorItem(data) {
+  const msg = (data && data.error) ? data.error : 'Respons server tidak dikenali';
+  if (msg === 'action tidak dikenali') {
+    return { name: '(Server belum diperbarui)', address: 'Fitur ini belum aktif di server. Hubungi admin.', placeId: '' };
+  }
+  return { name: '(Gagal)', address: msg, placeId: '' };
+}
+
 // ---------- Pencarian bisnis lewat nama (dipakai bareng oleh form aktivasi & edit) ----------
 async function searchBusiness(query) {
   try {
@@ -433,11 +442,11 @@ async function searchBusiness(query) {
     }
     const res = await fetch(url);
     const data = await res.json();
-    if (data.error) { console.error(data.error); return []; }
+    if (!Array.isArray(data)) return [serverErrorItem(data)];
     return data;
   } catch (err) {
     console.error('Gagal mencari bisnis:', err);
-    return [];
+    return [{ name: '(Koneksi gagal)', address: 'Periksa internet lalu coba lagi.', placeId: '' }];
   }
 }
 
@@ -447,11 +456,11 @@ async function searchBusinessByMapsLink(mapsUrl) {
     const url = APPS_SCRIPT_URL + '?action=resolveMapsLink&url=' + encodeURIComponent(mapsUrl);
     const res = await fetch(url);
     const data = await res.json();
-    if (data.error) { console.error(data.error); return []; }
+    if (!Array.isArray(data)) return [serverErrorItem(data)];
     return data;
   } catch (err) {
     console.error('Gagal membaca link Maps:', err);
-    return [];
+    return [{ name: '(Koneksi gagal)', address: 'Periksa internet lalu coba lagi.', placeId: '' }];
   }
 }
 
@@ -527,14 +536,20 @@ function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect, mapsLinkI
   });
 
   if (mapsLinkInputEl && mapsLinkBtnEl) {
-    mapsLinkBtnEl.addEventListener('click', async () => {
+    async function runMapsLinkSearch() {
       const link = mapsLinkInputEl.value.trim();
       if (!link) return;
       if (selected) { selected = null; confirmEl.style.display = 'none'; onSelect(null); }
+      mapsLinkBtnEl.disabled = true;
+      mapsLinkBtnEl.textContent = 'Membaca link...';
       showLoadingDropdown();
       const results = await searchBusinessByMapsLink(link);
       showDropdown(results, 'link Maps');
-    });
+      mapsLinkBtnEl.disabled = false;
+      mapsLinkBtnEl.textContent = 'Cari dari Link Maps';
+    }
+    mapsLinkBtnEl.addEventListener('click', runMapsLinkSearch);
+    mapsLinkInputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') runMapsLinkSearch(); });
   }
 
   return { getSelected: () => selected };
