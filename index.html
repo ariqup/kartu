@@ -290,6 +290,7 @@
       <label for="pinInput">Buat PIN (6 Digit Angka)</label>
       <input type="password" class="pin-box" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••••">
       <p class="pin-hint">PIN ini dipakai untuk mengelola kartu nanti (edit bisnis, ganti PIN, atau nonaktifkan).</p>
+      <p style="background:#FFF7E6;color:#8A5300;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;margin:10px 0 0;"><b>Catat PIN ini sekarang</b> (foto atau simpan di catatan HP). Demi keamanan, admin VepraCuan tidak bisa melihat PIN Anda. Kalau lupa, PIN hanya bisa direset lewat admin.</p>
     </div>
 
     <p class="error-msg" id="formErrorMsg"></p>
@@ -301,6 +302,7 @@
     <h1>Kartu Sudah Aktif</h1>
     <p class="desc">Kartu <b id="activeCardCode"></b> berhasil diaktifkan dan sudah bisa digunakan. Silakan cek dengan tap kartu NFC atau scan QR di kartu Anda untuk memastikan link menuju halaman review.</p>
 
+    <p style="background:#FFF7E6;color:#8A5300;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;margin:0 0 16px;">Pastikan PIN yang tadi dibuat sudah Anda catat. Admin tidak bisa melihat PIN Anda.</p>
     <button class="primary" id="openReviewBtn">Buka Halaman Review</button>
 
     <hr class="divider">
@@ -326,6 +328,7 @@
 
     <p class="error-msg" id="gateErrorMsg"></p>
     <button class="primary" id="gateSubmitBtn">Buka</button>
+    <a id="forgotPinLink" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;">Lupa PIN? Minta reset ke admin</a>
     <span class="back-link" id="gateBackLink">&larr; Kembali</span>
   </div>
 
@@ -415,6 +418,8 @@ const adminLink = document.getElementById('adminLink');
 function updateAdminLink() {
   const message = 'Halo Admin, saya butuh bantuan untuk Kartu Google Review.\nKode kartu: ' + CARD_CODE;
   adminLink.href = 'https://wa.me/' + ADMIN_WHATSAPP + '?text=' + encodeURIComponent(message);
+  const forgotMsg = 'Halo Admin, saya lupa PIN Kartu Google Review dan ingin reset PIN.\nKode kartu: ' + CARD_CODE + '\nNama bisnis: ';
+  document.getElementById('forgotPinLink').href = 'https://wa.me/' + ADMIN_WHATSAPP + '?text=' + encodeURIComponent(forgotMsg);
 }
 
 function showOnly(view) {
@@ -781,7 +786,7 @@ document.getElementById('savePinBtn').addEventListener('click', async () => {
 
     verifiedPin = newPin;
     newPinInput.value = '';
-    editSuccessMsg.textContent = 'PIN berhasil diganti.';
+    editSuccessMsg.textContent = 'PIN berhasil diganti. Catat PIN baru Anda, karena admin tidak bisa melihatnya.';
     editSuccessMsg.style.display = 'block';
   } catch (err) {
     editErrorMsg.textContent = err.message;
