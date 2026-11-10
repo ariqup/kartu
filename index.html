@@ -469,6 +469,11 @@ async function searchBusinessByMapsLink(mapsUrl) {
   }
 }
 
+// Tampilkan teks dari Google/pengguna apa adanya, tanpa dianggap kode HTML
+function escapeHtml(text) {
+  return String(text == null ? '' : text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function reviewLink(placeId) {
   return 'https://search.google.com/local/writereview?placeid=' + placeId;
 }
@@ -490,12 +495,12 @@ function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect, mapsLinkI
   function showDropdown(results, query) {
     dropdownEl.innerHTML = '';
     if (results.length === 0) {
-      dropdownEl.innerHTML = '<div class="dd-empty">Tidak ada bisnis ditemukan untuk "' + query + '"</div>';
+      dropdownEl.innerHTML = '<div class="dd-empty">Tidak ada bisnis ditemukan untuk "' + escapeHtml(query) + '"</div>';
     } else {
       results.forEach(place => {
         const item = document.createElement('div');
         item.className = 'dd-item';
-        item.innerHTML = '<div class="dd-name">' + place.name + '</div><div class="dd-addr">' + place.address + '</div>';
+        item.innerHTML = '<div class="dd-name">' + escapeHtml(place.name) + '</div><div class="dd-addr">' + escapeHtml(place.address) + '</div>';
         if (place.placeId) {
           item.addEventListener('click', () => selectPlace(place));
         } else {
@@ -513,7 +518,7 @@ function setupBusinessSearch(inputEl, dropdownEl, confirmEl, onSelect, mapsLinkI
   function selectPlace(place) {
     selected = place;
     inputEl.value = reviewLink(place.placeId);
-    confirmEl.innerHTML = 'Terpilih: <b>' + place.name + '</b> — ' + place.address;
+    confirmEl.innerHTML = 'Terpilih: <b>' + escapeHtml(place.name) + '</b> — ' + escapeHtml(place.address);
     confirmEl.style.display = 'block';
     hideDropdown();
     onSelect(place);
