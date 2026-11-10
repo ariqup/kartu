@@ -287,6 +287,12 @@
     </div>
 
     <div class="field" style="margin-top:20px;">
+      <label for="waInput">Nomor WhatsApp Pemilik <span style="font-weight:400;color:var(--text-secondary);">(opsional)</span></label>
+      <input type="tel" id="waInput" inputmode="tel" placeholder="Contoh: 081234567890" autocomplete="tel">
+      <p class="pin-hint">Dipakai admin untuk membantu kalau Anda lupa PIN atau ada kendala kartu. Tidak dibagikan ke pihak lain.</p>
+    </div>
+
+    <div class="field" style="margin-top:20px;">
       <label for="pinInput">Buat PIN (6 Digit Angka)</label>
       <input type="password" class="pin-box" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••••">
       <p class="pin-hint">PIN ini dipakai untuk mengelola kartu nanti (edit bisnis, ganti PIN, atau nonaktifkan).</p>
@@ -615,7 +621,8 @@ activateBtn.addEventListener('click', async () => {
       name: selected.name,
       address: selected.address,
       placeId: selected.placeId,
-      pin: pinInput.value
+      pin: pinInput.value,
+      wa: document.getElementById('waInput').value.trim()
     });
     const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
     const data = await res.json();
