@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mengalihkan…</title>
+<script>
+  // Alamat lama (ariqup.github.io) dipindah ke vepracuan.com.
+  // Kode kartu (?kode=...) dan parameter lain ikut dibawa.
+  location.replace('https://vepracuan.com/kartu/' + location.search + location.hash);
+</script>
+<noscript><meta http-equiv="refresh" content="0; url=https://vepracuan.com/kartu/"></noscript>
+<style>body{font-family:sans-serif;text-align:center;padding:60px 16px;color:#333}</style>
+</head>
+<body>
+<p>Mengalihkan ke halaman baru…</p>
+<p><a id="lanjut" href="https://vepracuan.com/kartu/">Klik di sini kalau tidak berpindah otomatis</a></p>
+<script>document.getElementById('lanjut').href='https://vepracuan.com/kartu/'+location.search+location.hash;</script>
+</body>
+</html>
